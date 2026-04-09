@@ -24,7 +24,10 @@ const PORT = process.env.PORT ?? 3000;
 
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../public")));
+//app.use(express.static(path.join(__dirname, "../public")));
+const publicPath = path.join(process.cwd(), "public");
+console.log(`✓ Static files: ${publicPath}`);
+app.use(express.static(publicPath));
 
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", model: process.env.MODEL });
