@@ -4,14 +4,14 @@ dotenv.config();
 // Set up global proxy BEFORE any fetch calls (same pattern as package/bin/server.js)
 import { setGlobalDispatcher, ProxyAgent } from "undici";
 
-/* if (process.env.PROX) {
+if (process.env.PROX) {
   const dispatcher = new ProxyAgent({
     uri: new URL(process.env.PROX).toString(),
     token: `Basic ${Buffer.from(`${process.env.AGENT_USER}:${process.env.AGENT_PWD}`).toString("base64")}`,
   });
   setGlobalDispatcher(dispatcher);
   console.log(`✓ Proxy: ${process.env.PROX} (user: ${process.env.AGENT_USER})`);
-} */
+}
 
 import express, { Request, Response } from "express";
 import cors from "cors";
