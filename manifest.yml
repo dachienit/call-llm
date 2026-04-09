@@ -1,0 +1,19 @@
+---
+applications:
+  - name: call-llm
+    memory: 256M
+    disk_quota: 512M
+    instances: 1
+    buildpacks:
+      - nodejs_buildpack
+    command: node dist/index.js
+    health-check-type: http
+    health-check-http-endpoint: /api/health
+    env:
+      NODE_ENV: production
+      MODEL: "gpt-5-nano-2025-08-07"
+      LLM_HOST: "https://aoai-farm.bosch-temp.com"
+      LLM_GPT_5NANO_CHAT: "https://aoai-farm.bosch-temp.com/api/openai/deployments/gpt-5-nano-2025-08-07/chat/completions?api-version=2025-04-01-preview"
+      SYSTEM_MESSAGE: "You are a helpful AI assistant. Answer clearly and concisely."
+      LLM_API_KEY: "0287bd8c9b0045efb99bf2efeecfce74"
+      # No PROX needed on BTP - direct outbound connectivity

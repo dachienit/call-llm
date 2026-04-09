@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Octo Agent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="custom-prompt.css" />
+</head>
+
+<body>
+  <div class="app">
+    <!-- Left Sidebar -->
+    <aside id="leftSidebar" class="sidebar sidebar-left collapsed">
+      <div class="sidebar-content">
+        <button id="newChatBtn" class="btn-new-chat">
+          <span class="icon">+</span>
+          <span>New Chat</span>
+        </button>
+
+        <div class="recent-chats-section">
+          <div class="section-header" id="recentChatsToggle">
+            <span>Recent Chats</span>
+            <span class="toggle-icon">▼</span>
+          </div>
+        </div>
+      </div>
+      <button id="leftSidebarToggle" class="sidebar-toggle sidebar-toggle-left" title="Open left sidebar">▶</button>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="chat-header">
+        <div class="brain-info">
+          <span class="brain-icon">🧠</span>
+          <span id="currentBrainName">Octo Agent</span>
+        </div>
+      </div>
+
+      <div class="chat-container">
+        <div id="messages" class="messages"></div>
+
+        <form id="chatForm" class="chat-input" autocomplete="off">
+          <input type="file" id="fileInput" accept=".txt,.abap" class="hidden" />
+
+          <div class="input-wrapper">
+            <div id="attachmentPreview" class="attachment-preview hidden">
+              <div class="attachment-chip">
+                <span class="attachment-icon">📄</span>
+                <span id="attachmentName" class="attachment-name">filename.txt</span>
+                <button type="button" id="removeAttachmentBtn" class="btn-remove-attachment">✕</button>
+              </div>
+            </div>
+
+            <textarea id="userInput" rows="1" placeholder="Send a message to brain 'Octo Agent'..."></textarea>
+
+            <button type="button" id="attachBtn" class="btn-attach" title="Attach file">
+              <span>+</span>
+            </button>
+          </div>
+
+          <div id="commandMenu" class="command-menu hidden">
+            <button type="button" class="command-item" data-command="analyze">@analyze</button>
+            <button type="button" class="command-item" data-command="refactor">@refactor</button>
+            <button type="button" class="command-item" data-command="review">@review</button>
+          </div>
+          <button type="submit" class="btn-send">
+            <span>↑</span>
+          </button>
+        </form>
+        <div class="copyright-notice">
+          <!-- &copy; Copyright: Octo Agent Team,  -->
+          <a href="https://inside-docupedia.bosch.com/confluence/spaces/BDVietnamCenter/pages/6341352990/Octo+Agent" target="_blank">v1.0.0</a>
+        </div>
+      </div>
+
+      <div id="waitOverlay" class="wait-overlay hidden">
+        <div class="wait-box">
+          <span class="spinner"></span>
+          <span>Please wait ...</span>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Sidebar (Settings) -->
+    <aside id="rightSidebar" class="sidebar sidebar-right collapsed">
+      <button id="rightSidebarToggle" class="sidebar-toggle sidebar-toggle-right" title="Open right sidebar">◀</button>
+      <div class="sidebar-content">
+        <div class="section-header" id="settingsToggle">
+          <span>Settings</span>
+          <span class="toggle-icon">▼</span>
+        </div>
+
+        <section id="settingsPanel" class="settings-panel">
+          <div class="settings-grid">
+            <label class="field">
+              <span>Brain ID</span>
+              <input id="envBrainId" type="text" placeholder="Brain ID" value="e39Lh3w2teng" />
+            </label>
+            <label class="field">
+              <span>NTID</span>
+              <input id="envNtid" type="text" placeholder="NTID" readonly />
+            </label>
+            <label class="field">
+              <span>Theme</span>
+              <select id="envTheme">
+                <option value="colorful">Colorful</option>
+                <option value="dark-gray">Dark Gray</option>
+                <option value="black">Black</option>
+                <option value="white">White</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Skill</span>
+              <select id="envSkill" class="skill-dropdown">
+                <option value="" disabled selected>Select a skill...</option>
+              </select>
+              <button type="button" id="editSkillBtn" class="btn-edit-skill">Edit</button>
+            </label>
+            <label class="field">
+              <span>Specific Requirements</span>
+              <textarea id="envCustomPrompt" maxlength="2000" rows="4"
+                placeholder="Input Specific Requirements (Max 2000 characters)"></textarea>
+              <button type="button" id="expandPromptBtn" class="btn-expand-prompt">Edit</button>
+            </label>
+          </div>
+          <div class="settings-actions">
+            <button id="saveSettings" class="btn-primary">Save</button>
+            <button id="resetSettings" class="btn-ghost">Reset</button>
+          </div>
+        </section>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Modal for expanding Specific Requirements -->
+  <div id="promptModal" class="prompt-modal hidden">
+    <div class="prompt-modal-content">
+      <div class="prompt-modal-header">
+        <h3>Specific Requirements</h3>
+        <button type="button" id="closePromptModal" class="btn-close-modal">✕</button>
+      </div>
+      <div class="prompt-modal-body">
+        <textarea id="modalCustomPrompt" maxlength="2000"
+          placeholder="Input Specific Requirements (Max 2000 characters)"></textarea>
+        <div class="char-counter">
+          <span id="charCount">0</span> / 2000 characters
+        </div>
+      </div>
+      <div class="prompt-modal-footer">
+        <button type="button" id="cancelPromptBtn" class="btn-ghost">Cancel</button>
+        <button type="button" id="applyPromptBtn" class="btn-primary">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal for editing Skill -->
+  <div id="skillModal" class="prompt-modal hidden">
+    <div class="prompt-modal-content">
+      <div class="prompt-modal-header">
+        <h3 id="skillModalTitle">Edit Skill</h3>
+        <button type="button" id="closeSkillModal" class="btn-close-modal">✕</button>
+      </div>
+      <div class="prompt-modal-body">
+        <textarea id="modalSkillContent" placeholder="Skill content..."></textarea>
+      </div>
+      <div class="prompt-modal-footer">
+        <button type="button" id="cancelSkillBtn" class="btn-ghost">Cancel</button>
+        <button type="button" id="saveSkillBtn" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</body>
+
+</html>
