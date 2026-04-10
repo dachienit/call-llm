@@ -1,3 +1,5 @@
+import { setGlobalDispatcher, ProxyAgent } from "undici";
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -17,6 +19,23 @@ let tokenCache: TokenCache = {
   accessToken: null,
   expiresAt: 0,
 };
+
+let proxyInitialized = false;
+
+function setupProxy(): void {
+  if (proxyInitialized) return;
+  
+  if (process.env.PROX) {
+    const dispatcher = new ProxyAgent({
+      uri: new URL(process.env.PROX).toString(),
+      token: `Basic ${Buffer.from(`${process.env.AGENT_USER}:${process.env.AGENT_PWD}`).toString("base64")}`,
+    });
+    setGlobalDispatcher(dispatcher);
+    console.log(`✓ Proxy (DIA): ${process.env.PROX} (user: ${process.env.AGENT_USER})`);
+  }
+  
+  proxyInitialized = true;
+}
 
 async function getOAuth2AccessToken(): Promise<{
   accessToken: string;
@@ -105,8 +124,13 @@ export async function callDIABrain(
 
   console.log(`[DIA Brain] → ${endpoint}`);
 
+  // Step 1: Get token
   const token = await getTokenCached();
+  
+  // Step 2: Setup proxy
+  setupProxy();
 
+  // Step 3: Create history if needed
   if (!chatHistoryId) {
     chatHistoryId = await createHistory(brainId, token);
     console.log(`[DIA Brain] Created history: ${chatHistoryId}`);

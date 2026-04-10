@@ -1,3 +1,5 @@
+import { setGlobalDispatcher, ProxyAgent } from "undici";
+
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
@@ -16,12 +18,30 @@ export interface LLMResponse {
   };
 }
 
+let proxyInitialized = false;
+
+function setupProxy(): void {
+  if (proxyInitialized) return;
+  
+  if (process.env.PROX) {
+    const dispatcher = new ProxyAgent({
+      uri: new URL(process.env.PROX).toString(),
+      token: `Basic ${Buffer.from(`${process.env.AGENT_USER}:${process.env.AGENT_PWD}`).toString("base64")}`,
+    });
+    setGlobalDispatcher(dispatcher);
+    console.log(`✓ Proxy: ${process.env.PROX} (user: ${process.env.AGENT_USER})`);
+  }
+  
+  proxyInitialized = true;
+}
+
 /**
  * Call LLM using native fetch().
- * Proxy is handled globally via undici setGlobalDispatcher in index.ts.
+ * Proxy is handled via undici setGlobalDispatcher before the first call.
  * Auth uses "genaiplatform-farm-subscription-key" header (same as package/src/llm.js).
  */
 export async function callLLM(messages: ChatMessage[]): Promise<LLMResponse> {
+  setupProxy();
   const endpoint = process.env.LLM_GPT_5NANO_CHAT;
   const apiKey   = process.env.LLM_API_KEY?.replace(/"/g, "").trim();
   const model    = process.env.MODEL?.replace(/"/g, "").trim() ?? "gpt-5-nano-2025-08-07";
