@@ -12,8 +12,9 @@ const PORT = process.env.PORT ?? 3000;
 
 app.use(cors());
 app.use(express.json());
-//app.use(express.static(path.join(__dirname, "../public")));
-const publicPath = path.join(process.cwd(), "public");
+
+// Static files - use __dirname for reliable path resolution
+const publicPath = path.join(__dirname, "../public");
 console.log(`✓ Static files: ${publicPath}`);
 app.use(express.static(publicPath));
 
