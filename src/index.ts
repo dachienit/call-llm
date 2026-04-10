@@ -18,6 +18,11 @@ const publicPath = path.join(__dirname, "../public");
 console.log(`✓ Static files: ${publicPath}`);
 app.use(express.static(publicPath));
 
+// Fallback route for SPA / index.html
+app.get("/", (_req: Request, res: Response) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
 app.get("/api/health", (_req: Request, res: Response) => {
   res.json({ status: "ok", model: process.env.MODEL });
 });
