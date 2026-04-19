@@ -5,6 +5,7 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import path from "path";
 import { callLLM, ChatMessage } from "./llmClient";
+import { callLLMStream } from "./llmStreamClient";
 import { callDIABrain } from "./diaBrainClient";
 
 const app = express();
@@ -52,6 +53,39 @@ app.post("/api/chat", async (req: Request, res: Response) => {
   }
 });
 
+// Streaming SSE endpoint for LLM Farm
+app.post("/api/chat-stream", async (req: Request, res: Response) => {
+  const { messages } = req.body as { messages: ChatMessage[] };
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    res.status(400).json({ error: "messages array is required" });
+    return;
+  }
+
+  const systemPrompt = process.env.SYSTEM_MESSAGE?.replace(/"/g, "").trim();
+  const hasSystem = messages.some((m) => m.role === "system");
+  const finalMessages: ChatMessage[] = systemPrompt && !hasSystem
+    ? [{ role: "system", content: systemPrompt }, ...messages]
+    : messages;
+
+  // Set SSE headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  try {
+    await callLLMStream(finalMessages, res);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[Chat Stream Error]", message);
+    res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+    res.write("data: [DONE]\n\n");
+    res.end();
+  }
+});
+
 app.post("/api/chat-DIA", async (req: Request, res: Response) => {
   const { messages, chatHistoryId } = req.body as {
     messages: ChatMessage[];
@@ -86,6 +120,61 @@ app.post("/api/chat-DIA", async (req: Request, res: Response) => {
     const message = err instanceof Error ? err.message : "Unknown error";
     console.error("[DIA Brain Error]", message);
     res.status(500).json({ error: message });
+  }
+});
+
+// Streaming SSE endpoint for DIA Brain (simulated stream)
+app.post("/api/chat-DIA-stream", async (req: Request, res: Response) => {
+  const { messages, chatHistoryId } = req.body as {
+    messages: ChatMessage[];
+    chatHistoryId?: string;
+  };
+
+  if (!Array.isArray(messages) || messages.length === 0) {
+    res.status(400).json({ error: "messages array is required" });
+    return;
+  }
+
+  const systemPrompt = process.env.SYSTEM_MESSAGE?.replace(/"/g, "").trim();
+  const hasSystem = messages.some((m) => m.role === "system");
+  const finalMessages: ChatMessage[] =
+    systemPrompt && !hasSystem
+      ? [{ role: "system", content: systemPrompt }, ...messages]
+      : messages;
+
+  // Set SSE headers
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  try {
+    const result = await callDIABrain(finalMessages, chatHistoryId);
+
+    // Send chatHistoryId first
+    if (result.chatHistoryId) {
+      res.write(`data: ${JSON.stringify({ chatHistoryId: result.chatHistoryId })}\n\n`);
+    }
+
+    // Simulate streaming: send content in small chunks
+    const content = result.result;
+    const chunkSize = 3; // characters per chunk
+    for (let i = 0; i < content.length; i += chunkSize) {
+      const chunk = content.slice(i, i + chunkSize);
+      res.write(`data: ${JSON.stringify({ content: chunk })}\n\n`);
+      // Small delay to create typewriter effect
+      await new Promise((resolve) => setTimeout(resolve, 15));
+    }
+
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    console.error("[DIA Brain Stream Error]", message);
+    res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+    res.write("data: [DONE]\n\n");
+    res.end();
   }
 });
 
