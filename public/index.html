@@ -537,6 +537,23 @@
         // Create streaming bubble
         const { bubble } = createStreamBubble();
         let fullContent = '';
+        let displayedContent = '';
+        let isTyping = false;
+
+        async function typeContent() {
+          if (isTyping) return;
+          isTyping = true;
+          while (displayedContent.length < fullContent.length) {
+            const remaining = fullContent.length - displayedContent.length;
+            // Type faster if a large chunk was received at once to avoid painful waiting
+            const charsToType = remaining > 200 ? 8 : (remaining > 50 ? 3 : 1);
+            displayedContent += fullContent.substring(displayedContent.length, displayedContent.length + charsToType);
+            bubble.textContent = displayedContent;
+            scrollToBottom();
+            await new Promise(r => setTimeout(r, 15));
+          }
+          isTyping = false;
+        }
 
         const reader = res.body.getReader();
         const decoder = new TextDecoder();
@@ -580,14 +597,18 @@
 
                 if (chunk.content) {
                   fullContent += chunk.content;
-                  bubble.textContent = fullContent;
-                  scrollToBottom();
+                  typeContent();
                 }
               } catch {
                 // Skip malformed JSON
               }
             }
           }
+        }
+
+        // Wait for the typing animation to finish
+        while (isTyping || displayedContent.length < fullContent.length) {
+          await new Promise(r => setTimeout(r, 50));
         }
 
         // Stop streaming cursor

@@ -75,6 +75,12 @@ app.post("/api/chat-stream", async (req: Request, res: Response) => {
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
 
+  // Disable TCP Nagle so each write() is sent immediately (no kernel buffering)
+  const socket = req.socket;
+  if (socket) {
+    socket.setNoDelay(true);
+  }
+
   try {
     await callLLMStream(finalMessages, res);
   } catch (err: unknown) {
@@ -148,6 +154,12 @@ app.post("/api/chat-DIA-stream", async (req: Request, res: Response) => {
   res.setHeader("Connection", "keep-alive");
   res.setHeader("X-Accel-Buffering", "no");
   res.flushHeaders();
+
+  // Disable TCP Nagle so each write() is sent immediately (no kernel buffering)
+  const socket = req.socket;
+  if (socket) {
+    socket.setNoDelay(true);
+  }
 
   try {
     const result = await callDIABrain(finalMessages, chatHistoryId);
